@@ -94,6 +94,21 @@ tests/            pytest
 - 必须能读 `/dev/input/event*`：`finput setup-permissions --install` 后重新登录；
   没有权限时 `finput doctor --test hotkey` 会说明原因
 
+## 抓屏怎么选区
+
+程序**不自己画选区**，也不调 `grim`/`slurp` 这类外部命令 —— 选区界面就是系统截屏窗口本身：
+
+1. 按下抓屏热键（默认 `Super+Shift+O`）。
+2. 系统截屏窗口弹出（GNOME 原生截屏界面），拖框选 `Select Area to Grab`；
+   框选 / 整屏 / 选窗口三种模式、多屏、HiDPI、缩放全部由桌面负责。
+3. 桌面生成 PNG 之后，程序只认「这次触发之后新出现、且写完整的 PNG」，取走 → OCR → 剪贴板，然后把原图删掉。
+
+KDE 上 `ocr.trigger=spectacle`：由 `spectacle --region` 弹自己的选区并直接写文件，流程一样。
+
+**没有系统截屏窗口的桌面（sway / Hyprland / i3 这类只把按键映射到命令的 WM）不支持**：
+`inject` 注入的 `Print` 没有窗口响应，`listen` 也没有 GNOME 快捷键可改绑，结果只会等到
+`ocr.timeout_s` 超时。本程序只借系统窗口选区，不内置选区覆盖层，也不接管外部截图命令。
+
 ## 开发
 
 ```bash
@@ -119,7 +134,7 @@ uv tool install --force .     # 装到全局（改完代码重装一次）
 | KDE 上按抓屏热键没弹选区 | 需要 `spectacle`：`finput doctor` 看「抓屏方式」；没装就 `sudo apt install spectacle`（Arch: `pacman -S spectacle`），「谁打开截屏窗口」选 Spectacle 即可 |
 | 按抓屏热键没弹出系统截屏窗口 | 默认靠 uinput 按一下 `Print`：`finput doctor` 看「/dev/uinput」是否可写；也可在设置页把「谁打开截屏窗口」改成 `listen`（保存时自动把热键加进 GNOME 的「截屏界面」） |
 | 系统截屏窗口开着，不想截了 | 在窗口里按 Esc 关掉；daemon 会等超时（`ocr.timeout_s`，默认 60 秒）后自动空出 |
-| 抓屏超时（`等待系统截屏超时`） | 要先在系统窗口里选「Select Area to Grab」框选，再点「Take Screenshot」；文件落在 `~/Pictures`（含 `Screenshots/` 子目录），程序只认这次触发后新出现且写完整的 PNG |
+| 抓屏超时（`等待系统截屏超时`） | 要在系统窗口里完成框选、让桌面生成图片；程序只认这次触发后新出现且写完整的 PNG。如果是 sway/Hyprland/i3 这类**没有系统截屏窗口**的桌面，注定超时——本程序不支持这类桌面（见上文「抓屏怎么选区」） |
 | 粘贴键不对（终端里按了没反应） | 默认 `shift+insert` 终端与浏览器都通用；个别应用要 `ctrl+v` 或 `ctrl+shift+v`，在设置页「粘贴组合键」里换 |
 | 按 `Print` 没反应、抓屏一直等到超时 | 桌面把系统截屏快捷键改掉了：`gsettings list-recursively org.gnome.shell.keybindings \| grep show-screenshot-ui` 看绑的是什么；到设置页把「谁打开截屏窗口」重新保存一次会重新改绑 |
 | 停止/卸载后快捷键还绑着 | 程序不会自动还原映射：设置页把「谁打开截屏窗口」改回「注入 Print」并保存即可还原 `show-screenshot-ui`；KDE 用 Spectacle，不碰桌面按键 |
