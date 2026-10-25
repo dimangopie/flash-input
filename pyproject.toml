@@ -1,0 +1,51 @@
+[project]
+name = "flash-input"
+version = "0.1.0"
+description = "Flash Input：语音/抓屏 → 文字 → 剪贴板（ONNX 本地推理，Xorg/Wayland 通用）"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "onnxruntime>=1.24.4",
+    "numpy",
+    "sounddevice",
+    "rapidocr",
+    "pillow",
+    "modelscope",
+    "tokenizers",
+]
+
+[project.scripts]
+finput = "flash_input.cli:main"
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.17"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/flash_input"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "C4", "SIM", "PERF", "RUF"]
+# 这些是本项目刻意的降级/容错写法，不是疏漏：
+ignore = [
+    "BLE001",  # 兜底 except Exception：界面/日志层要吞掉噪声继续跑
+    "S110",    # try-except-pass：只读环境、可选外部命令
+    "PLW1510", # subprocess 自己检查 returncode
+    "E501",    # 由 formatter 管换行
+    "RUF001", "RUF002", "RUF003",  # 中文全角标点在注释/字符串里是正常写法
+]
+
+[tool.ruff.lint.per-file-ignores]
+# 测试里允许长断言、私有访问
+"tests/*" = ["S101", "RUF012"]
+
+[tool.ruff.format]
+quote-style = "double"

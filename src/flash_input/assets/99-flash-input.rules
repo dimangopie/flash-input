@@ -1,0 +1,14 @@
+# finput 的 udev 规则：让「当前前台会话」的用户拿到两样权限，不用 root、不加组。
+#
+# 1) /dev/uinput 可写 —— 发粘贴组合键（Ctrl+V）。uaccess 由 logind 在登录时按会话发 ACL，
+#    注销/切到别的 seat 时自动收回，比 GROUP="input" 更贴合"只给当前用户"的意图。
+# 2) /dev/input/event* 可读 —— 按住说话与 OCR 组合键的 evdev 监听。
+#    系统自带的 70-uaccess.rules 只给 joystick 打 uaccess 标签，键盘/鼠标没有，
+#    所以键盘这条必须自己加。
+#
+# 兜底：没有 logind 的机器上 uaccess 不会生效，最后一行按组授权。
+# 安装：finput setup-permissions --install   （等价 cp 到 /etc/udev/rules.d/ + udevadm reload）
+
+KERNEL=="uinput", TAG+="uaccess", OPTIONS+="static_node=uinput"
+SUBSYSTEM=="input", ENV{ID_INPUT_KEYBOARD}=="1", TAG+="uaccess"
+KERNEL=="uinput", GROUP="input", MODE="0660"
