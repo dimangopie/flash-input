@@ -130,7 +130,7 @@
 热键在**进程内读 `/dev/input/event*`**（原生 ioctl + `struct`，不引入 python-evdev）：
 
 - 读的是**物理键码**，与键盘布局无关；Xorg / Wayland、GNOME / KDE / wlroots 同一套
-- 设备枚举只保留「能同时提供语音键与抓屏键」的键盘；每 2 s 重扫一次，支持热插拔
+- 设备枚举只保留「能同时提供语音键与抓屏键」的键盘；每 0.5 s 重扫一次，支持热插拔
 - `hotkey.mode`：
   - `evdev`（默认）：上面的进程内监听，**需要 daemon**
     （GNOME 自定义快捷键在「设置 → 键盘 → 自定义快捷键」里手动加，不再提供 `shortcut` 子命令）
@@ -213,6 +213,7 @@ daemon 不在时：语音与抓屏都不可用（热键没有监听者）。
 ```
 src/flash_input/
 ├── cli.py          # 命令行入口、子命令实现、退出码
+├── completion.py   # shell 补全脚本（argparse 现生成，不手写）
 ├── daemon.py       # 常驻进程：IPC、热键、单飞任务、维护线程、状态聚合
 ├── hotkey.py       # /dev/input/event* 原生读取 + Matcher（按住/组合/守卫）
 ├── ipc.py          # unix socket 服务端与客户端
@@ -275,9 +276,8 @@ src/flash_input/
 | `inject.paste_delay_ms` | `60` | 写剪贴板到发键的间隔 |
 | `inject.voice_paste` | `true` | 语音识别后是否自动粘贴 |
 | `inject.ocr_paste` | `false` | 抓屏识别后是否自动粘贴（默认只进剪贴板，按需再粘） |
-| `inject.restore_clipboard` | `false` | 粘完不恢复旧剪贴板（还能自己再按一次粘贴） |
 | `web.enabled` | `true` | 常驻进程是否起设置页 |
-| `web.host` / `web.port` | `127.0.0.1` / `7331` | 监听地址与端口（只监听回环） |
+| `web.host` / `web.port` | `127.0.0.1` / `7331` | 监听地址与端口；`web.host` 只接受回环（`127.0.0.1` / `::1` / `localhost`），其余值校验直接拒绝 |
 
 设置页（`finput web --open`）能改上表的大部分项：热键录制、常驻策略、线程数、抓屏触发方式与超时、
 排版、粘贴开关、监听端口；页面同时显示 `status` 摘要。表单提交走 `POST /api/config`，服务端复用同一份
@@ -318,7 +318,7 @@ src/flash_input/
 
 | `asr.model` | 模型 | 体积 | 加载 | 5 s 音频 | 峰值 RSS | 特点 |
 |---|---|---|---|---|---|---|
-| `qwen3-0.6b`（默认） | Qwen3-ASR 0.6B int8 | 983 MB | 2.4 s | ≈2.1 s | ≈3.1 GB | 中英均衡，自回归最慢 |
+| `qwen3-0.6b`（默认） | Qwen3-ASR 0.6B int8 | 983 MB | 2.7 s | ≈0.9 s | ≈3.1 GB | 中英均衡，自回归最慢 |
 | `qwen3-1.7b` | Qwen3-ASR 1.7B int8 | 2.6 GB | 5 s | ≈4 s | ≈5 GB | 更准，内存占用高 |
 | `sensevoice` | SenseVoiceSmall int8 | 239 MB | 0.7 s | 0.17 s | ≈0.5 GB | 中英日韩粤，抗噪，带标点 |
 | `paraformer` | Paraformer-zh int8 | 227 MB | 1.0 s | 0.15 s | ≈0.5 GB | 中文最准，无标点 |
@@ -424,7 +424,7 @@ WantedBy=graphical-session.target
 
 | 分类 | 内容 |
 |---|---|
-| **A. `uv` 自动装** | onnxruntime、numpy、sounddevice（自带 PortAudio，依赖系统 `libasound`）、rapidocr、pillow、tokenizers、jeepney、modelscope、`flash-input` 本体 |
+| **A. `uv` 自动装** | onnxruntime、numpy、sounddevice（自带 PortAudio，依赖系统 `libasound`）、rapidocr、pillow、tokenizers、modelscope、`flash-input` 本体 |
 | **B. 必须发行版装** | 剪贴板二选一：`wl-clipboard`（Wayland）/ `xclip`（Xorg）；`systemd`（`systemctl --user`、`udevadm`）；内核 `uinput`；logind 的 seat ACL；glibc（非 musl）；KDE 另加 `spectacle`（区域截图） |
 | **C. 不需要** | `notify-send`/libnotify（不弹通知）、`ydotool`/`wtype`/`xdotool`（uinput 自己发键）、grim/maim/import（系统截屏 UI）、ffmpeg/sox、系统 python3、keyd/swhkd |
 
@@ -472,7 +472,7 @@ GNOME 与 KDE 在 Wayland 上共用同一套底层，所以只有两处不同：
 | M6 | 打包验证：干净环境 `uv tool install` 全链路 + README 收尾 | ⬜ 未开始 |
 | M7 | 可选 ASR 引擎：`asr_ctc`（SenseVoice/Paraformer）+ `asr_stream`（Zipformer）+ `asr_models` 下载 | ✅ 2026-10-21 |
 
-测试：`uv run pytest` → **183 passed**（配置、键位映射、OCR 行合并、注入事件序列、热键状态机、
+测试：`uv run pytest` → **236 passed**（配置、键位映射、OCR 行合并、注入事件序列、热键状态机、
 IPC、daemon 单飞、设置页、服务/规则/快捷键生成）。
 
 ---
@@ -482,8 +482,8 @@ IPC、daemon 单飞、设置页、服务/规则/快捷键生成）。
 | 项目 | 数值 |
 |---|---|
 | ASR 0.6B 模型 | 983 MB（conv 44 + encoder 182 + decoder 756） |
-| ASR 加载 | 2.4 s；首推后 RSS 2.4 GB；峰值 ≈ 3.1 GB；`unload` 后 ≈ 1.3 GB（ORT arena 不归 OS） |
-| ASR 解码 | 35 ms/token @4 线程；10 s 中文 ≈ 40 token ≈ **3.2 s**（已加载），冷启动 +4.9 s |
+| ASR 加载 | 2.7 s；首推后 RSS 2.4 GB；峰值 ≈ 3.1 GB；`unload` 后 ≈ 1.3 GB（ORT arena 不归 OS） |
+| ASR 解码 | 约 21–24 ms/token @4 线程（按实际音频长度送、KV 现分配，不补 30 s）；5 s 中文 ≈ **0.9 s**、11 s ≈ 3.1 s（已加载），冷启动 +2.9 s |
 | OCR 模型 | 31 MB（PP-OCRv6 det/rec + cls） |
 | OCR 加载 / 常驻 | 0.4–1.3 s / RSS 169 MB |
 | OCR 识别 | 5 行对话框 0.67 s；满屏 1920×1080（28 行）1.72 s @4 线程 |

@@ -180,14 +180,13 @@ PAGE = r"""<!doctype html>
   <div class="checks">
    <label class="check"><input type="checkbox" id="voice_paste" data-path="inject.voice_paste">语音识别后自动粘贴</label>
    <label class="check"><input type="checkbox" id="ocr_paste" data-path="inject.ocr_paste">图片识别后自动粘贴</label>
-   <label class="check"><input type="checkbox" id="restore_clipboard" data-path="inject.restore_clipboard">粘贴后恢复原剪贴板</label>
   </div>
 </div>
 
 <div class="card"><h2>设置页本身</h2>
  <div class="row">
   <div><label for="web_host">监听地址</label>
-   <input type="text" id="web_host" data-path="web.host"></div>
+   <input type="text" id="web_host" data-path="web.host" readonly title="只允许本机回环地址（127.0.0.1 / ::1 / localhost）"></div>
   <div><label for="web_port">端口（0 = 自动）</label>
    <input type="number" id="web_port" data-path="web.port" min="0" max="65535"></div>
  </div>

@@ -3,7 +3,7 @@
 协议刻意做小：每个连接发一行 JSON、收一行 JSON，然后关闭。这样命令行不用长连接，
 daemon 也不用处理粘包；单飞保护在 daemon 里，不靠连接数。
 
-请求：`{"cmd": "ping" | "status" | "voice" | "ocr" | "shutdown", ...}`
+请求：`{"cmd": "ping" | "status" | "reload" | "shutdown", ...}`（抓屏/语音只由热键驱动）
 响应：`{"ok": bool, "busy": bool, "msg": str, "data": {...}}`
 """
 

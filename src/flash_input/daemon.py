@@ -114,7 +114,7 @@ class Daemon:
             time.sleep(delay)
             delay = min(delay * 2, 2.0)
         if not env.session_bus_present():
-            logger.warning("会话总线还没就绪；桌面通知可能发不出去，抓屏与粘贴不受影响")
+            logger.warning("会话总线还没就绪；热键、抓屏与粘贴都不依赖它，可以继续")
 
         try:
             self._ipc_server = ipc.make_server(self.handle)

@@ -489,7 +489,7 @@ def _slug(text: str) -> str:
 
 
 def register(cfg: dict, name: str, directory: str, *, kind: str = "auto") -> dict:
-    """校验目录并生成一条自定义模型登记；调用方负责写进 cfg["asr"]["models"]。"""
+    """校验目录并生成一条自定义模型登记；调用方负责写进 models.json（registry）。"""
     path = Path(directory).expanduser()
     if not path.is_absolute():
         raise CatalogError("请填绝对路径（可以以 ~ 开头），相对路径会随工作目录变")

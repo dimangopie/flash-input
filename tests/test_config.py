@@ -61,6 +61,15 @@ def test_unknown_key():
         config_mod.set_path(config_mod.load(), "asr.nope", "1")
 
 
+def test_web_host_must_be_loopback():
+    cfg = config_mod.load()
+    for host in ("127.0.0.1", "::1", "localhost"):
+        config_mod.validate(config_mod.set_path(cfg, "web.host", host))
+    for bad in ("0.0.0.0", "", "192.168.1.10", "::"):
+        with pytest.raises(config_mod.ConfigError):
+            config_mod.set_path(cfg, "web.host", bad)
+
+
 def test_broken_file_falls_back(cfg_file):
     cfg_file.write_text("{ not json", encoding="utf-8")
     cfg = config_mod.load()

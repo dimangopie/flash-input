@@ -113,7 +113,7 @@ KDE 上 `ocr.trigger=spectacle`：由 `spectacle --region` 弹自己的选区并
 
 ```bash
 uv sync                       # 装依赖（含 pytest / ruff）
-uv run pytest -q              # 测试（227 条）
+uv run pytest -q              # 测试（236 条）
 uv run ruff check src tests   # 静态检查
 uv run ruff format src tests  # 格式化
 uv build                      # 出 wheel / sdist

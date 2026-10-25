@@ -28,6 +28,8 @@ CAPTURE_TRIGGERS = ("inject", "listen", "spectacle")
 ASR_LANGUAGES = ("auto", "zh", "en", "ja", "ko", "yue")
 RESIDENT_CHOICES = ("none", "10min", "30min", "forever")
 RESIDENT_SECONDS: dict[str, int | None] = {"none": 0, "10min": 600, "30min": 1800, "forever": None}
+# 设置页没有鉴权，只允许绑在本机回环：0.0.0.0 / 局域网地址一律拒绝
+LOOPBACK_HOSTS = ("127.0.0.1", "::1", "localhost")
 
 DEFAULTS: dict[str, Any] = {
     "hotkey": {
@@ -59,11 +61,10 @@ DEFAULTS: dict[str, Any] = {
         "mode": "auto",  # auto / uinput / clipboard
         "paste_key": "shift+insert",
         "paste_delay_ms": 60,
-        "restore_clipboard": False,
         "voice_paste": True,  # 语音识别完是否自动粘贴（False = 只进剪贴板）
         "ocr_paste": False,  # 抓屏识别完是否自动粘贴（默认只进剪贴板）
     },
-    "web": {"enabled": True, "host": "127.0.0.1", "port": 7331, "open_browser": False},
+    "web": {"enabled": True, "host": "127.0.0.1", "port": 7331},
     "version": CONFIG_VERSION,
 }
 
@@ -246,13 +247,15 @@ def validate(cfg: dict[str, Any]) -> None:
         _is_int(inject.get("paste_delay_ms")) and 0 <= inject["paste_delay_ms"] <= 5000,
         "inject.paste_delay_ms 应在 0~5000",
     )
-    _expect(isinstance(inject.get("restore_clipboard"), bool), "inject.restore_clipboard 应为布尔")
 
     web = cfg.get("web") or {}
     _expect(isinstance(web.get("enabled"), bool), "web.enabled 应为布尔")
-    _expect(isinstance(web.get("host"), str) and web["host"], "web.host 不能为空")
+    # 设置页没有任何鉴权，还能改配置、注册任意路径的 ONNX 模型：只许绑回环。
+    _expect(
+        web.get("host") in LOOPBACK_HOSTS,
+        "web.host 只能是回环地址（" + " / ".join(LOOPBACK_HOSTS) + "），设置页没有鉴权",
+    )
     _expect(_is_int(web.get("port")) and 0 <= web["port"] <= 65535, "web.port 应在 0~65535")
-    _expect(isinstance(web.get("open_browser"), bool), "web.open_browser 应为布尔")
 
 
 # --------------------------------------------------------------------------- 点号路径读写
